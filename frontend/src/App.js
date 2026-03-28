@@ -208,15 +208,19 @@ export default function App() {
         }}>
           AI POWERED • 3-LAYER SECURITY
         </div>
-        <h1 style={{
-          fontSize: "3rem", margin: "0 0 8px",
-          background: "linear-gradient(90deg, #00e5ff, #7c4dff)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          fontWeight: "800"
-        }}>
-          🛡️ Cyber Guardian
-        </h1>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px" }}>
+  <img src="/logo.png" alt="logo" style={{ width: "50px", height: "50px", borderRadius: "10px" }} />
+  <h1 style={{
+    fontSize: "3rem",
+    margin: "0",
+    background: "linear-gradient(90deg, #00e5ff, #7c4dff)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    fontWeight: "800"
+  }}>
+    Cyber Guardian
+  </h1>
+</div>
         <p style={{ color: "#666", fontSize: "1rem", margin: 0 }}>
           Protect yourself from Scams, Phishing & Fraud — Check URLs and SMS
         </p>
