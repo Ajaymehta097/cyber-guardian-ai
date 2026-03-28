@@ -1,0 +1,239 @@
+require('dotenv').config();
+const Groq = require('groq-sdk');
+const https = require('https');
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const VT_KEY = process.env.VIRUSTOTAL_API_KEY;
+const GSB_KEY = process.env.GOOGLE_SAFE_BROWSING_KEY;
+
+// ═══════════════════════════════════
+// LAYER 1: Google Safe Browsing
+// ═══════════════════════════════════
+function checkGoogleSafeBrowsing(url) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({
+      client: { clientId: 'cyber-guardian', clientVersion: '1.0.0' },
+      threatInfo: {
+        threatTypes: ['MALWARE', 'SOCIAL_ENGINEERING', 'UNWANTED_SOFTWARE', 'POTENTIALLY_HARMFUL_APPLICATION'],
+        platformTypes: ['ANY_PLATFORM'],
+        threatEntryTypes: ['URL'],
+        threatEntries: [{ url }]
+      }
+    });
+
+    const options = {
+      hostname: 'safebrowsing.googleapis.com',
+      path: `/v4/threatMatches:find?key=${GSB_KEY}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.matches && json.matches.length > 0) {
+            resolve({ safe: false, threats: json.matches.map(m => m.threatType) });
+          } else {
+            resolve({ safe: true, threats: [] });
+          }
+        } catch {
+          resolve({ safe: true, threats: [] });
+        }
+      });
+    });
+
+    req.on('error', () => resolve({ safe: true, threats: [] }));
+    req.write(body);
+    req.end();
+  });
+}
+
+// ═══════════════════════════════════
+// LAYER 2: VirusTotal
+// ═══════════════════════════════════
+function checkVirusTotal(url) {
+  return new Promise((resolve) => {
+    const encoded = Buffer.from(url).toString('base64').replace(/=/g, '');
+    const options = {
+      hostname: 'www.virustotal.com',
+      path: `/api/v3/urls/${encoded}`,
+      method: 'GET',
+      headers: { 'x-apikey': VT_KEY }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          const stats = json?.data?.attributes?.last_analysis_stats;
+          if (!stats) return resolve(null);
+          resolve({
+            malicious: stats.malicious || 0,
+            suspicious: stats.suspicious || 0,
+            harmless: stats.harmless || 0,
+            undetected: stats.undetected || 0,
+          });
+        } catch {
+          resolve(null);
+        }
+      });
+    });
+
+    req.on('error', () => resolve(null));
+    req.end();
+  });
+}
+
+// ═══════════════════════════════════
+// LAYER 3: Groq AI
+// ═══════════════════════════════════
+async function checkGroqAI(url, gsbResult, vtResult) {
+  const gsbContext = gsbResult?.safe === false
+    ? `Google Safe Browsing: THREAT DETECTED — ${gsbResult.threats.join(', ')}`
+    : 'Google Safe Browsing: Clean';
+
+  const vtContext = vtResult
+    ? `VirusTotal: ${vtResult.malicious} engines flagged malicious, ${vtResult.suspicious} suspicious, ${vtResult.harmless} harmless`
+    : 'VirusTotal: Not available';
+
+  const response = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{
+      role: 'user',
+      content: `You are an expert cybersecurity analyst specializing in phishing and scam detection.
+
+Analyze this URL deeply: ${url}
+
+Security scan results:
+- ${gsbContext}
+- ${vtContext}
+
+Check for these specific things:
+
+1. INTENT DETECTION - What is this URL trying to do?
+   (steal credentials / steal money / spread malware / collect personal info / legitimate)
+
+2. PSYCHOLOGICAL TRICKS - Which manipulation tactics are used?
+   (urgency / fear / greed / authority impersonation / too-good-to-be-true / none)
+
+3. TECHNICAL RED FLAGS - Check:
+   - Suspicious TLD (.tk, .xyz, .ml, .ga, .cf)
+   - IP address instead of domain
+   - Too many hyphens
+   - Misspelled brand names (paypa1, amaz0n)
+   - HTTP instead of HTTPS
+   - Random string in domain
+
+4. BRAND IMPERSONATION - Is it pretending to be a known brand?
+   (sbi, hdfc, paytm, google, amazon, facebook, etc.)
+
+Respond in this EXACT JSON format only, no extra text:
+{
+  "scam_score": <0-100>,
+  "risk_level": "<Safe / Suspicious / Dangerous>",
+  "intent": "<what this URL is trying to do>",
+  "psychological_tricks": ["trick1", "trick2"],
+  "technical_red_flags": ["flag1", "flag2"],
+  "brand_impersonation": "<brand name or none>",
+  "simple_explanation": "<1 sentence explanation for a non-technical user>",
+  "reasons": ["reason1", "reason2", "reason3"]
+}`
+    }],
+    temperature: 0.3,
+  });
+
+  const text = response.choices[0].message.content;
+  const clean = text.replace(/```json|```/g, '').trim();
+  return JSON.parse(clean);
+}
+
+// ═══════════════════════════════════
+// COMBINED SCANNER
+// ═══════════════════════════════════
+async function scanURL(url) {
+  console.log('  → Layer 1: Google Safe Browsing...');
+  console.log('  → Layer 2: VirusTotal...');
+
+  const [gsbResult, vtResult] = await Promise.all([
+    checkGoogleSafeBrowsing(url),
+    checkVirusTotal(url)
+  ]);
+
+  console.log(`     GSB: ${gsbResult?.safe ? '✅ Clean' : '🚨 THREAT: ' + gsbResult?.threats?.join(', ')}`);
+  console.log(`     VT:  ${vtResult ? `🔴 ${vtResult.malicious} malicious, ⚠️ ${vtResult.suspicious} suspicious` : '⚠️ Not available'}`);
+
+  console.log('  → Layer 3: Groq AI Analysis...');
+  const aiResult = await checkGroqAI(url, gsbResult, vtResult);
+
+  // Final Score Logic
+  let finalScore = aiResult.scam_score;
+  let finalRisk = aiResult.risk_level;
+  const extraReasons = [];
+
+  if (gsbResult?.safe === false) {
+    finalScore = Math.max(finalScore, 95);
+    finalRisk = 'Dangerous';
+    extraReasons.push(`🚨 Google Safe Browsing: ${gsbResult.threats.join(', ')} detected`);
+  }
+
+  if (vtResult?.malicious > 5) {
+    finalScore = Math.max(finalScore, 95);
+    finalRisk = 'Dangerous';
+    extraReasons.push(`🔴 ${vtResult.malicious} antivirus engines ne malicious flag kiya`);
+  } else if (vtResult?.malicious > 0) {
+    finalScore = Math.max(finalScore, 70);
+    if (finalRisk === 'Safe') finalRisk = 'Suspicious';
+    extraReasons.push(`⚠️ ${vtResult.malicious} antivirus engine ne flag kiya`);
+  }
+
+  return {
+    url,
+    scam_score: finalScore,
+    risk_level: finalRisk,
+    intent: aiResult.intent,
+    psychological_tricks: aiResult.psychological_tricks,
+    technical_red_flags: aiResult.technical_red_flags,
+    brand_impersonation: aiResult.brand_impersonation,
+    simple_explanation: aiResult.simple_explanation,
+    reasons: [...extraReasons, ...aiResult.reasons],
+    sources: {
+      google_safe_browsing: gsbResult,
+      virustotal: vtResult || 'Not available',
+    }
+  };
+}
+
+// ═══════════════════════════════════
+// TEST
+// ═══════════════════════════════════
+async function main() {
+  const testURLs = [
+    'https://www.google.com',
+    'http://free-iphone-winner-claim-now.xyz',
+    'http://sbi-bank-login-verify-account.tk',
+    'http://paytm-kyc-update-urgent.ml',
+    'https://www.amazon.com'
+  ];
+
+  for (const url of testURLs) {
+    console.log(`\n${'═'.repeat(50)}`);
+    console.log(`Scanning: ${url}`);
+    console.log('═'.repeat(50));
+    try {
+      const result = await scanURL(url);
+      console.log('Final Result:', JSON.stringify(result, null, 2));
+    } catch (err) {
+      console.error('Error:', err.message);
+    }
+  }
+}
+
+main();
