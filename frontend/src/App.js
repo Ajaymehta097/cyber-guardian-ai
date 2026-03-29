@@ -9,7 +9,7 @@ function HistorySection() {
 
   const loadHistory = async () => {
     try {
-      const res = await axios.get("https://cyber-guardian-api.onrender.com/history", { withCredentials: true });
+      const res = await axios.get("https://cyber-guardian-ai.onrender.com/history", { withCredentials: true });
       setHistory(res.data);
       setShow(true);
     } catch (err) {
@@ -102,7 +102,7 @@ export default function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    axios.get("https://cyber-guardian-api.onrender.com/auth/me", { withCredentials: true })
+    axios.get("https://cyber-guardian-ai.onrender.com/auth/me", { withCredentials: true })
       .then(res => setUser(res.data.user))
       .catch(() => setUser(null));
   }, []);
@@ -115,7 +115,7 @@ export default function App() {
     setResult(null);
     setError("");
     try {
-      const res = await axios.post("https://cyber-guardian-api.onrender.com/scan", { input, type }, { withCredentials: true });
+      const res = await axios.post("https://cyber-guardian-ai.onrender.com/scan", { input, type }, { withCredentials: true });
       setResult(res.data);
     } catch (err) {
       setError("❌ Scan failed! Is the server running?");
@@ -178,7 +178,7 @@ export default function App() {
         </div>
         <button
           onClick={async () => {
-            await axios.post("https://cyber-guardian-api.onrender.com/auth/logout", {}, { withCredentials: true });
+            await axios.post("https://cyber-guardian-ai.onrender.com/auth/logout", {}, { withCredentials: true });
             setUser(null);
             setResult(null);
           }}
