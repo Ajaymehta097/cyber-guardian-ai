@@ -12,14 +12,15 @@ const { register, login, saveScanHistory, getScanHistory, verifyToken } = requir
 const app = express();
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
-app.use(cors({ 
+const corsOptions = {
   origin: ['http://localhost:3000', 'https://cyber-guardian-ai-alpha.vercel.app'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
-}));
+};
 
-app.options('*', cors());
+app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 app.use(session({
@@ -36,7 +37,7 @@ app.use(passport.session());
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: 'http://localhost:5000/auth/google/callback'
+  callbackURL: 'https://cyber-guardian-api.onrender.com/auth/google/callback'
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     const email = profile.emails[0].value;
@@ -95,8 +96,10 @@ app.post('/auth/register', async (req, res) => {
     const result = await register(name, email, password);
     res.cookie('token', result.token, {
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: 'none',
+      secure: true
+});
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
