@@ -210,7 +210,7 @@ export default function App() {
           AI POWERED • 3-LAYER SECURITY
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px" }}>
-  <img src="/logo.png" alt="logo" style={{ width: "50px", height: "50px", borderRadius: "10px" }} />
+  <img src={logo} alt="logo" style={{ width: "50px", height: "50px", borderRadius: "10px" }} />
   <h1 style={{
     fontSize: "3rem",
     margin: "0",
