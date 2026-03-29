@@ -18,8 +18,8 @@ export default function Auth({ onLogin, lang, t }) {
     setError("");
     try {
       const url = mode === "login"
-        ? "http://localhost:5000/auth/login"
-        : "http://localhost:5000/auth/register";
+        ? "https://cyber-guardian-ai.onrender.com"
+        : "https://cyber-guardian-ai.onrender.com";
       const body = mode === "login"
         ? { email, password }
         : { name, email, password };
@@ -175,7 +175,7 @@ export default function Auth({ onLogin, lang, t }) {
 
           {/* Google Login */}
           <button
-            onClick={() => window.location.href = "http://localhost:5000/auth/google"}
+            onClick={() => window.location.href = "https://cyber-guardian-ai.onrender.com"}
             style={{
               width: "100%",
               padding: "14px",

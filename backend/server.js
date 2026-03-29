@@ -12,7 +12,10 @@ const { register, login, saveScanHistory, getScanHistory, verifyToken } = requir
 const app = express();
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+app.use(cors({ 
+  origin: ['http://localhost:3000', 'https://cyber-guardian-ai-alpha.vercel.app'],
+  credentials: true 
+}));
 app.use(express.json());
 app.use(cookieParser());
 app.use(session({
