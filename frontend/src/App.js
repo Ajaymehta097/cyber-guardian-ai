@@ -8,8 +8,11 @@ function HistorySection() {
   const [show, setShow] = useState(false);
 
   const loadHistory = async () => {
-    try {
-      const res = await axios.get("https://cyber-guardian-ai.onrender.com/history", { withCredentials: true });
+  try {
+    const res = await axios.get(
+      "https://cyber-guardian-ai.onrender.com/history", 
+      { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
+    );
       setHistory(res.data);
       setShow(true);
     } catch (err) {
@@ -102,10 +105,18 @@ export default function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    axios.get("https://cyber-guardian-ai.onrender.com/auth/me", { withCredentials: true })
-      .then(res => setUser(res.data.user))
-      .catch(() => setUser(null));
-  }, []);
+  const token = localStorage.getItem('token');
+  if (token) {
+    axios.get("https://cyber-guardian-ai.onrender.com/auth/me", { 
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => setUser(res.data.user))
+    .catch(() => {
+      localStorage.removeItem('token');
+      setUser(null);
+    });
+  }
+}, []);
 
   if (!user) return <Auth onLogin={setUser} />;
 
@@ -115,7 +126,11 @@ export default function App() {
     setResult(null);
     setError("");
     try {
-      const res = await axios.post("https://cyber-guardian-ai.onrender.com/scan", { input, type }, { withCredentials: true });
+      const res = await axios.post(
+  "https://cyber-guardian-ai.onrender.com/scan", 
+  { input, type }, 
+  { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
+);
       setResult(res.data);
     } catch (err) {
       setError("❌ Scan failed! Is the server running?");
@@ -177,11 +192,11 @@ export default function App() {
           </div>
         </div>
         <button
-          onClick={async () => {
-            await axios.post("https://cyber-guardian-ai.onrender.com/auth/logout", {}, { withCredentials: true });
-            setUser(null);
-            setResult(null);
-          }}
+          onClick={() => {
+  localStorage.removeItem('token');
+  setUser(null);
+  setResult(null);
+}}
           style={{
             padding: "8px 16px", borderRadius: "8px",
             border: "1px solid rgba(244,67,54,0.3)",

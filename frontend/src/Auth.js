@@ -24,7 +24,8 @@ export default function Auth({ onLogin, lang, t }) {
         ? { email, password }
         : { name, email, password };
       const res = await axios.post(url, body);
-      onLogin(res.data.user);
+localStorage.setItem('token', res.data.token);
+onLogin(res.data.user);
     } catch (err) {
       setError(err.response?.data?.error || "Something went wrong!");
     }
