@@ -14,8 +14,12 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 app.use(cors({ 
   origin: ['http://localhost:3000', 'https://cyber-guardian-ai-alpha.vercel.app'],
-  credentials: true 
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }));
+
+app.options('*', cors());
 app.use(express.json());
 app.use(cookieParser());
 app.use(session({
