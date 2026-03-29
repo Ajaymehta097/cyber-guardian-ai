@@ -8,7 +8,7 @@ function HistorySection() {
 
   const loadHistory = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/history", { withCredentials: true });
+      const res = await axios.get("https://cyber-guardian-api.onrender.com", { withCredentials: true });
       setHistory(res.data);
       setShow(true);
     } catch (err) {
@@ -101,7 +101,7 @@ export default function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/auth/me", { withCredentials: true })
+    axios.get("https://cyber-guardian-api.onrender.com", { withCredentials: true })
       .then(res => setUser(res.data.user))
       .catch(() => setUser(null));
   }, []);
@@ -114,7 +114,7 @@ export default function App() {
     setResult(null);
     setError("");
     try {
-      const res = await axios.post("http://localhost:5000/scan", { input, type }, { withCredentials: true });
+      const res = await axios.post("https://cyber-guardian-api.onrender.com", { input, type }, { withCredentials: true });
       setResult(res.data);
     } catch (err) {
       setError("❌ Scan failed! Is the server running?");
@@ -177,7 +177,7 @@ export default function App() {
         </div>
         <button
           onClick={async () => {
-            await axios.post("http://localhost:5000/auth/logout", {}, { withCredentials: true });
+            await axios.post("https://cyber-guardian-api.onrender.com", {}, { withCredentials: true });
             setUser(null);
             setResult(null);
           }}
