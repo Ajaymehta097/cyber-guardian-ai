@@ -139,7 +139,7 @@ app.get('/auth/google',
 );
 
 app.get('/auth/google/callback',
-  passport.authenticate('google', { failureRedirect: 'http://localhost:3000' }),
+  passport.authenticate('google', { failureRedirect: 'https://cyber-guardian-ai-frontend.vercel.app' }),
   async (req, res) => {
     try {
       const user = req.user;
@@ -153,9 +153,9 @@ app.get('/auth/google/callback',
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000
       });
-      res.redirect('https://cyber-guardian-ai.onrender.com');
+      res.redirect('https://cyber-guardian-ai-frontend.vercel.app');
     } catch (err) {
-      res.redirect('https://cyber-guardian-ai.onrender.com');
+      res.redirect('https://cyber-guardian-ai-frontend.vercel.app');
     }
   }
 );
