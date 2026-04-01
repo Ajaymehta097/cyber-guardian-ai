@@ -151,8 +151,10 @@ app.get('/auth/google/callback',
       );
       res.cookie('token', token, {
         httpOnly: true,
+        secure: true,        // 🔥 required for HTTPS
+        sameSite: 'none',    // 🔥 required for cross-domain
         maxAge: 7 * 24 * 60 * 60 * 1000
-      });
+});
       res.redirect('https://cyber-guardian-ai-alpha.vercel.app');
     } catch (err) {
       res.redirect('https://cyber-guardian-ai-alpha.vercel.app');
